@@ -14,5 +14,6 @@
 
 Для установки поставьте нужны библиотеки:
 
-# pip install pyTelegramBotAPI
-# pip install BeautifulSoup4
+<code>pip install pyTelegramBotAPI</code>
+
+<code>pip install BeautifulSoup4</code>
