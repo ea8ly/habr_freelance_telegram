@@ -43,8 +43,16 @@ def get_linenumber():
     global line_number
     line_number = cf.f_back.f_lineno
 
+# Connect to the database and create a table to store the task titles and URLs
+conn = sqlite3.connect('tasks.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS tasks (title TEXT, url TEXT)''')
+
+
 # Main loop
 while True:
+
+    new_titles = []  # Move this line here
 
     response = requests.get(url)
 
@@ -58,13 +66,7 @@ while True:
         task_titles.append(title['title'])
         task_urls.append('https://freelance.habr.com' + title.a['href'])
 
-    # Connect to the database and create a table to store the task titles and URLs
-    conn = sqlite3.connect('tasks.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS tasks (title TEXT, url TEXT)''')
-
     # Insert the task titles and URLs into the database
-    new_titles = []
     for i, title in enumerate(task_titles):
         # Check if the title and URL are already saved in the database
         c.execute('SELECT COUNT(*) FROM tasks WHERE title=? AND url=?', (title, task_urls[i]))
@@ -97,3 +99,7 @@ while True:
     conn.close()
 
     time.sleep(sleep_timer)
+
+    # Reconnect to the database
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
