@@ -1,6 +1,8 @@
 # Habr Freelance Telegram
 Скрипт парсит Хабр Фриланс и отправляет новые заказы в телеграм канал
 
+![image](https://user-images.githubusercontent.com/130507972/232136344-fbcaa884-0eda-4cd2-a8c9-f39c801439b3.png)
+
 Вы можете поменять сферу деятельности в конфиге, а так же вписать туда свой тг канал, куда слать оповещения.
 
 ![image](https://user-images.githubusercontent.com/130507972/232136056-d48af87c-81b8-441d-9f70-1598c3539e78.png)
