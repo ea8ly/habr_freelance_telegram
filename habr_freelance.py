@@ -8,6 +8,7 @@
 import time
 import sqlite3
 import telebot
+import hashlib
 import datetime
 import requests
 import configparser
@@ -33,7 +34,6 @@ categories = ','.join(my_favorite_cats)
 url = base_url + urllib.parse.quote(categories)
 # print(url)
 
-
 # Define the telegram bot
 bot = telebot.TeleBot(token)
 
@@ -43,16 +43,18 @@ def get_linenumber():
     global line_number
     line_number = cf.f_back.f_lineno
 
-# Connect to the database and create a table to store the task titles and URLs
-conn = sqlite3.connect('tasks.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS tasks (title TEXT, url TEXT)''')
-
 
 # Main loop
 while True:
 
-    new_titles = []  # Move this line here
+    # Connect to the database and create a table to store the task titles and URLs
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
+    conn.commit()
+
+    # Initialize new titles list
+    new_titles = []
 
     response = requests.get(url)
 
@@ -66,22 +68,27 @@ while True:
         task_titles.append(title['title'])
         task_urls.append('https://freelance.habr.com' + title.a['href'])
 
-    # Insert the task titles and URLs into the database
-    for i, title in enumerate(task_titles):
-        # Check if the title and URL are already saved in the database
-        c.execute('SELECT COUNT(*) FROM tasks WHERE title=? AND url=?', (title, task_urls[i]))
+    # Compute the hashes of the task titles and URLs
+    title_hashes = [hashlib.sha256(title.encode()).hexdigest() for title in task_titles]
+    url_hashes = [hashlib.sha256(url.encode()).hexdigest() for url in task_urls]
+
+    # Insert the task title and URL hashes into the database
+    for i, title_hash in enumerate(title_hashes):
+        url_hash = url_hashes[i]
+        # Check if the title and URL hashes are already saved in the database
+        c.execute('SELECT COUNT(*) FROM tasks WHERE title_hash=? AND url_hash=?', (title_hash, url_hash))
         count = c.fetchone()[0]
 
         if count == 0:
-            # If the title and URL are new, add them to the new_titles list and insert them into the database
-            new_titles.append(title)
-            c.execute('INSERT INTO tasks VALUES (?, ?)', (title, task_urls[i]))
+            # If the title and URL hashes are new, add them to the new_titles list and insert them into the database
+            new_titles.append((task_titles[i], task_urls[i]))
+            c.execute('INSERT INTO tasks VALUES (?, ?)', (title_hash, url_hash))
             conn.commit()
 
     # Check if there are any new titles
     if new_titles:
         # Print the new titles and URLs
-        for title, url in reversed(list(zip(new_titles, task_urls))):
+        for title, url in reversed(new_titles):
             print(title)
             print(url)
             try:
@@ -89,17 +96,13 @@ while True:
                 bot.send_message(chat_id, url)
                 time.sleep(3)
             except Exception as e:
-                get_linenumber()
-                print(line_number, 'exception: {}'.format(e))
+                print('exception: {}'.format(e))
                 pass
     else:
-        print('No new data',datetime.datetime.now())
+        print('No new data', datetime.datetime.now())
+
+    # Sleep for a bit before scraping again
+    time.sleep(sleep_timer)
 
     # Close the database connection
     conn.close()
-
-    time.sleep(sleep_timer)
-
-    # Reconnect to the database
-    conn = sqlite3.connect('tasks.db')
-    c = conn.cursor()
