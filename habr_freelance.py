@@ -17,35 +17,33 @@ from bs4 import BeautifulSoup
 from inspect import currentframe
 
 
-# Read the config.ini
-config = configparser.ConfigParser()
-config.read('config.ini')
 
-# Set variables
-chat_id = config.getint('telegram', 'chat_id')
-token = config.get('telegram', 'token')
-words_to_find = config.get('keywords', 'words_to_find').split(',')
-my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
-sleep_timer = int(config.get('main', 'sleep_timer'))
-base_url = config.get('categories', 'base_url')
-
-# Make the URL
-categories = ','.join(my_favorite_cats)
-url = base_url + urllib.parse.quote(categories)
-# print(url)
-
-# Define the telegram bot
-bot = telebot.TeleBot(token)
-
-# Error handling
-def get_linenumber():
-    cf = currentframe()
-    global line_number
-    line_number = cf.f_back.f_lineno
-
-
-# Main loop
 while True:
+    # Read the config.ini
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    # Set variables
+    chat_id = config.getint('telegram', 'chat_id')
+    token = config.get('telegram', 'token')
+    words_to_find = config.get('keywords', 'words_to_find').split(',')
+    my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
+    sleep_timer = int(config.get('main', 'sleep_timer'))
+    base_url = config.get('categories', 'base_url')
+
+    # Make the URL
+    categories = ','.join(my_favorite_cats)
+    url = base_url + urllib.parse.quote(categories)
+    # print(url)
+
+    # Define the telegram bot
+    bot = telebot.TeleBot(token)
+
+    # Error handling
+    def get_linenumber():
+        cf = currentframe()
+        global line_number
+        line_number = cf.f_back.f_lineno
 
     # Connect to the database and create a table to store the task titles and URLs
     conn = sqlite3.connect('tasks.db')
@@ -101,8 +99,7 @@ while True:
     else:
         print('No new data', datetime.datetime.now())
 
-    # Sleep for a bit before scraping again
-    time.sleep(sleep_timer)
-
     # Close the database connection
     conn.close()
+
+    time.sleep(sleep_timer)
