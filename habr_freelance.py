@@ -4,9 +4,11 @@
 # python3 -m vevn .hf && source .hf/bin/activate
 # pip install pyTelegramBotAPI
 # pip install BeautifulSoup4
+# pip install duckdb
 # ---------------------
+
 import time
-import sqlite3
+import duckdb
 import telebot
 import hashlib
 import datetime
@@ -46,7 +48,7 @@ while True:
         line_number = cf.f_back.f_lineno
 
     # Connect to the database and create a table to store the task titles and URLs
-    conn = sqlite3.connect('tasks.db')
+    conn = duckdb.connect('tasks.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
     conn.commit()
