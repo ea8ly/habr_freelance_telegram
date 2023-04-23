@@ -17,7 +17,7 @@ import configparser
 import urllib.parse
 from bs4 import BeautifulSoup
 from inspect import currentframe
-
+from functools import wraps
 
 
 while True:
@@ -30,7 +30,7 @@ while True:
     token = config.get('telegram', 'token')
     words_to_find = config.get('keywords', 'words_to_find').split(',')
     my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
-    sleep_timer = int(config.get('main', 'sleep_timer'))
+    SLEEP_TIMER = int(config.get('main', 'sleep_timer'))
     base_url = config.get('categories', 'base_url')
 
     # Make the URL
@@ -47,6 +47,26 @@ while True:
         global line_number
         line_number = cf.f_back.f_lineno
 
+    # Retry decorator
+    def retry(max_retries, delay_seconds):
+        def decorator_retry(func):
+            @wraps(func)
+            def wrapper_retry(*args, **kwargs):
+                retry_count = 0
+                while retry_count < max_retries:
+                    try:
+                        return func(*args, **kwargs)
+                    except Exception as e:
+                        print(f'Exception {e} occurred, retrying in {delay_seconds} seconds')
+                        retry_count += 1
+                        time.sleep(delay_seconds)
+                print(f'Max retries ({max_retries}) exceeded, raising last exception')
+                raise e
+
+            return wrapper_retry
+
+        return decorator_retry
+
     # Connect to the database and create a table to store the task titles and URLs
     conn = duckdb.connect('tasks.db')
     c = conn.cursor()
@@ -56,10 +76,14 @@ while True:
     # Initialize new titles list
     new_titles = []
 
-    response = requests.get(url)
+    # Get HTML content
+    @retry(5, 2)
+    def get_html_content():
+        response = requests.get(url)
+        return response.content
 
     # Parse the HTML content using Beautiful Soup
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(get_html_content(), 'html.parser')
 
     # Find all the task titles and URLs
     task_titles = []
@@ -78,9 +102,9 @@ while True:
         # Check if the title and URL hashes are already saved in the database
         c.execute('SELECT COUNT(*) FROM tasks WHERE title_hash=? AND url_hash=?', (title_hash, url_hash))
         count = c.fetchone()[0]
-
+        
+        # If the title and URL hashes are new, add them to the new_titles list and insert them into the database
         if count == 0:
-            # If the title and URL hashes are new, add them to the new_titles list and insert them into the database
             new_titles.append((task_titles[i], task_urls[i]))
             c.execute('INSERT INTO tasks VALUES (?, ?)', (title_hash, url_hash))
             conn.commit()
@@ -104,4 +128,4 @@ while True:
     # Close the database connection
     conn.close()
 
-    time.sleep(sleep_timer)
+    time.sleep(SLEEP_TIMER)
