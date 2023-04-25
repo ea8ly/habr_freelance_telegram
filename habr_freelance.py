@@ -20,58 +20,62 @@ from inspect import currentframe
 from functools import wraps
 
 
+ver = '1.1:25.04.23'
+
+# Error handling
+def get_linenumber():
+    cf = currentframe()
+    global line_number
+    line_number = cf.f_back.f_lineno
+
+# Retry decorator
+def retry(max_retries, delay_seconds):
+    def decorator_retry(func):
+        @wraps(func)
+        def wrapper_retry(*args, **kwargs):
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f'Exception {e} occurred, retrying in {delay_seconds} seconds')
+                    retry_count += 1
+                    time.sleep(delay_seconds)
+            print(f'Max retries ({max_retries}) exceeded, raising last exception')
+            raise e
+
+        return wrapper_retry
+
+    return decorator_retry
+
+
+# Read the config.ini
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# Set variables
+chat_id = config.getint('telegram', 'chat_id')
+token = config.get('telegram', 'token')
+words_to_find = config.get('keywords', 'words_to_find').split(',')
+my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
+SLEEP_TIMER = int(config.get('main', 'sleep_timer'))
+base_url = config.get('categories', 'base_url')
+
+# Make the URL
+categories = ','.join(my_favorite_cats)
+url = base_url + urllib.parse.quote(categories)
+# print(url)
+
+# Define the telegram bot
+bot = telebot.TeleBot(token)
+
+# Connect to the database and create a table to store the task titles and URLs
+conn = duckdb.connect('tasks.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
+conn.commit()
+
 while True:
-    # Read the config.ini
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-
-    # Set variables
-    chat_id = config.getint('telegram', 'chat_id')
-    token = config.get('telegram', 'token')
-    words_to_find = config.get('keywords', 'words_to_find').split(',')
-    my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
-    SLEEP_TIMER = int(config.get('main', 'sleep_timer'))
-    base_url = config.get('categories', 'base_url')
-
-    # Make the URL
-    categories = ','.join(my_favorite_cats)
-    url = base_url + urllib.parse.quote(categories)
-    # print(url)
-
-    # Define the telegram bot
-    bot = telebot.TeleBot(token)
-
-    # Error handling
-    def get_linenumber():
-        cf = currentframe()
-        global line_number
-        line_number = cf.f_back.f_lineno
-
-    # Retry decorator
-    def retry(max_retries, delay_seconds):
-        def decorator_retry(func):
-            @wraps(func)
-            def wrapper_retry(*args, **kwargs):
-                retry_count = 0
-                while retry_count < max_retries:
-                    try:
-                        return func(*args, **kwargs)
-                    except Exception as e:
-                        print(f'Exception {e} occurred, retrying in {delay_seconds} seconds')
-                        retry_count += 1
-                        time.sleep(delay_seconds)
-                print(f'Max retries ({max_retries}) exceeded, raising last exception')
-                raise e
-
-            return wrapper_retry
-
-        return decorator_retry
-
-    # Connect to the database and create a table to store the task titles and URLs
-    conn = duckdb.connect('tasks.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
-    conn.commit()
 
     # Initialize new titles list
     new_titles = []
