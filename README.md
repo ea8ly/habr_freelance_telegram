@@ -19,3 +19,6 @@
 <code>pip install BeautifulSoup4</code>
 
 <code>pip install duckdb</code>
+
+
+p.s. проект сделан, чтобы протестировать как работать с БД DuckDB и делать конфиги через ini-файлы. И то и другое "через жопу". Лучше конфиги делать через config.py, а базу использовать нормальный sqlite.
