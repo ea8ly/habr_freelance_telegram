@@ -20,7 +20,7 @@ from inspect import currentframe
 from functools import wraps
 
 
-ver = '1.1:25.04.23'
+ver = '1.2:26.04.23'
 
 # Error handling
 def get_linenumber():
