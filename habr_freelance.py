@@ -61,11 +61,6 @@ my_favorite_cats = config.get('categories', 'my_favorite_cats').split(',')
 SLEEP_TIMER = int(config.get('main', 'sleep_timer'))
 base_url = config.get('categories', 'base_url')
 
-# Make the URL
-categories = ','.join(my_favorite_cats)
-url = base_url + urllib.parse.quote(categories)
-# print(url)
-
 # Define the telegram bot
 bot = telebot.TeleBot(token)
 
@@ -76,6 +71,11 @@ c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''
 conn.commit()
 
 while True:
+
+    # Make the URL
+    categories = ','.join(my_favorite_cats)
+    url = base_url + urllib.parse.quote(categories)
+    # print(url)
 
     # Initialize new titles list
     new_titles = []
