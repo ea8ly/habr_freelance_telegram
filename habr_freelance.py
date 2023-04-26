@@ -64,13 +64,13 @@ base_url = config.get('categories', 'base_url')
 # Define the telegram bot
 bot = telebot.TeleBot(token)
 
-# Connect to the database and create a table to store the task titles and URLs
-conn = duckdb.connect('tasks.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
-conn.commit()
-
 while True:
+
+    # Connect to the database and create a table to store the task titles and URLs
+    conn = duckdb.connect('tasks.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS tasks (title_hash TEXT, url_hash TEXT)''')
+    conn.commit()
 
     # Make the URL
     categories = ','.join(my_favorite_cats)
